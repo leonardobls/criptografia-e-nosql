@@ -15,19 +15,22 @@ def pega_chave():
 def conecta_banco():
     client = MongoClient("mongodb://localhost:27017")
 
-    db = client["trabalho_nosql"]
+    db = client["trabalho-nosql"]
 
-    collection = db["countries"]
+    collection = db["country"]
 
     return collection
 
 def insere_dados(conexao):
 
-    df = pd.read_csv("encrypted.csv", sep=",")
+    df_dados =  pd.DataFrame(list(conexao.find({})))
 
-    data = df.to_dict("records")
+    if df_dados.empty:
+        df = pd.read_csv("encrypted.csv", sep=",")
 
-    conexao.insert_many(data)
+        data = df.to_dict("records")    
+
+        conexao.insert_many(data)
 
 
 def descriptografa(fe, cidade):
@@ -47,15 +50,20 @@ def pesquisa_por_nome(fe, cidades):
     for item in cidades.find({"country": pais}): 
         teste = bytes(item['city'].replace("b'", "").replace("'", ""), encoding="utf-8")
         if(descriptografa(fe, teste)) == cidade:
-            print(descriptografa(fe, teste))
+            #print(descriptografa(fe, teste))
+            print("Pais: " + item["country"] + 
+            " - Cidade: " + descriptografa(fe, bytes(item['city'].replace("b'", "").replace("'", ""), encoding="utf-8")) +
+            " - População: " + str(item["population"]))
+
     
 
 def mais_populoso(fe, cidades):
     teste = cidades.find().sort("population",-1).limit(1)
     for item in teste:
+        print("\n\nCidade mais populosa: \n")
         print("Pais: " + item["country"] + 
         "\nCidade: " + descriptografa(fe, bytes(item['city'].replace("b'", "").replace("'", ""), encoding="utf-8")) +
-        "\nPopulação: " + str(item["population"]))
+        "\nPopulação: " + str(item["population"]) + "\n")
 
 def pesquisa_regiao(fe, cidades):
     try:
@@ -72,7 +80,7 @@ def pesquisa_regiao(fe, cidades):
 if __name__ == "__main__":
     cidades = conecta_banco()
     fe = pega_chave()
-    #insere_dados(cidades)
+    insere_dados(cidades)
     lista_cidades_pais(fe, cidades)
     pesquisa_por_nome(fe, cidades)
     mais_populoso(fe, cidades)
